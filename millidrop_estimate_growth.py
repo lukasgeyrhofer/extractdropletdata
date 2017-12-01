@@ -6,6 +6,8 @@ import argparse
 import sys,math
 import os
 
+import pylab as p
+
 import millidrop_dataclass as mdc
 
 def LoadDropMap(filename):
@@ -61,7 +63,7 @@ def Statistics(x):
     return np.mean(x),np.std(x),np.median(x)
 
 def hist_s(x,range = (0,1),bins =20):
-    h,b = np.histo(x,range=range,bins=bins)
+    h,b = np.histogram(x,range=range,bins=bins)
     b = b[:-1] + np.diff(b)
     return h,b
 
@@ -90,8 +92,8 @@ for label in idropmap.iterkeys():
         if len(t) >= args.numberpoints:
             gr = np.array( [MLSQ_fit(t[i:i+args.numberpoints],np.log(f[i:i+args.numberpoints]),returnoffset=False) for i in range(len(t)-args.numberpoints)], dtype=np.float)
             grlist.append(FracMean(gr,frac = args.maxfrac))
-    print "{:20s} {:.6f} {:.6f} {:.6f}".format(label,*Statistics(grlist))
+    #print "{:20s} {:.6f} {:.6f} {:.6f}".format(label,*Statistics(grlist))
     
+    print grlist
     
-        
         
