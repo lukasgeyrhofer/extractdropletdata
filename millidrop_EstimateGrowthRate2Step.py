@@ -63,8 +63,8 @@ for label in data.labels:
         gr1 = np.array([mdc.MLSQ_fit(t1[i:i+args.numberpoints,0],np.log(t1[i:i+args.numberpoints,1]),returnoffset = False) for i in range(len(t1[:,0])-args.numberpoints)],dtype=np.float)
         gr2 = np.array([mdc.MLSQ_fit(t2[i:i+args.numberpoints,0],np.log(t2[i:i+args.numberpoints,1]),returnoffset = False) for i in range(len(t2[:,0])-args.numberpoints)],dtype=np.float)
 
-        np.savetxt(args.outbasename + '{:04d}-{}F'.format(i,label),np.transpose([t1[:,0],t1[:,1]]))
-        np.savetxt(args.outbasename + '{:04d}-{}B'.format(i,label),np.transpose([t2[:,0],t2[:,1]]))
+        #np.savetxt(args.outbasename + '{:04d}-{}F'.format(i,label),np.transpose([t1[:,0],t1[:,1]]))
+        #np.savetxt(args.outbasename + '{:04d}-{}B'.format(i,label),np.transpose([t2[:,0],t2[:,1]]))
         
 
         # add to list
