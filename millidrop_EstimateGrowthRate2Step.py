@@ -98,13 +98,13 @@ for label in data.labels:
             
     np.savetxt(args.outbasename + label + '_growthrates',gr_all)
     if args.compute_histogram:
-        h,b = np.histogram(gr_all,range = args.histo_range,bins = args.histo_bins)
+        h,b = np.histogram(gr_all,range = args.histo_range,bins = args.histo_bins, density = True)
         b = .5*(b[1:] + b[:-1])
         np.savetxt(args.outbasename + label + '_histogram',np.transpose([b,h]))
     
     if not args.skipsecond:
         np.savetxt(args.outbasename + label + '_growthrates_2step',gr_all_2step)
         if args.compute_histogram:
-            h,b = np.histogram(gr_all_2step,range = args.histo_range,bins = args.histo_bins)
+            h,b = np.histogram(gr_all_2step,range = args.histo_range,bins = args.histo_bins, density = True)
             b = .5*(b[1:] + b[:-1])
             np.savetxt(args.outbasename + label + '_histogram_2step',np.transpose([b,h]))
