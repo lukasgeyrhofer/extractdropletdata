@@ -25,13 +25,19 @@ def compute_weights(growthrates,numberpoints):
     return w
 
 parser = argparse.ArgumentParser()
-parser = mdc.AddCommandLineParameters(parser)
+parser_data = parser.add_argument_group(description = "==== Data parameters ====")
+parser_data.add_argument("-i", "--infiles"          )
+parser_data.add_argument("-t", "--templatefile",    default=None)
+parser_data.add_argument("-u", "--timerescale", default=3.6e3, type=float)
+parser_data.add_argument("-E", "--excludelabels",default=None,nargs ="*")
+
 parser_gr = parser.add_argument_group(description = "==== Growthrate Estimation ====")
 parser_gr.add_argument("-n","--numberpoints",default=4,type=int)
 parser_gr.add_argument("-f","--upperfrac",default=.95,type=float)
 parser_gr.add_argument("-M","--maxfev",default=1000,type=int)
+
 parser_io = parser.add_argument_group(description = "==== I/O ====")
-#parser_io.add_argument("-o","--baseoutname",default="")
+parser_io.add_argument("-o","--outbasename",     default=None)
 parser_io.add_argument("-S","--skipsecond",default=False,action="store_true")
 parser_io.add_argument("-H","--compute_histogram",default=False,action="store_true")
 parser_io.add_argument("-R","--histo_range",default=[0,2],nargs=2,type=float)
@@ -39,8 +45,9 @@ parser_io.add_argument("-B","--histo_bins",default=40,type=int)
 args = parser.parse_args()
 
 data = mdc.DropletDataNew(**vars(args))
-data.ExcludeLabel('Empty')
-
+if len(args.excludelabels) > 0:
+    for el in args.excludelabels:
+        data.ExcludeLabel(el)
 
 for label in data.labels:
     gr_all = list()
