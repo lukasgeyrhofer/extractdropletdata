@@ -33,6 +33,8 @@ class DropletDataNew(object):
         for i in range(len(self.__dropmap)):
             fn = os.path.join(self.__dropdir,'{:04d}.csv'.format(i))
             self.__data[i] = pd.read_csv(fn)
+            if 'time' in self.__data[i]:
+                self.__data[i]['time'] /= self.__timerescale
 
     def LoadDropMap(self,filename):
         tpfile = pd.read_csv(filename,header = 4)
@@ -67,17 +69,19 @@ class DropletDataNew(object):
     def __getattr__(self,key):
         if key == 'labels':
             return [label for label in self.__idropmap.keys() if label not in self.__excludelabels]
-        else:
-            super(DropletDataNew,self).__getattr__(key)
+        #else:
+            #super(DropletDataNew,self).__getattr__(key)
             
     
     def __getitem__(self,key):
         if key in self.__idropmap.keys():
             for dropID in self.__idropmap[key]:
                 yield self.__data[dropID]
+        else:
+            raise KeyError('"{}" not in allowed labels: ('.format(key) + ', '.join(self.__idropmap.keys()) + ')')
 
 
-def getTrajectories(data,channel,SplitBackForthTrajectories=True,timerescale = 3.6e3):
+def getTrajectories(data,channel,SplitBackForthTrajectories=True,timerescale = 1):
     if channel in data.columns and 'time' in data.columns:
         t = np.array(data['time']/timerescale,dtype=np.float)
         x = np.array(data[channel],dtype=np.float)
