@@ -98,19 +98,37 @@ def getTrajectories(data,channel,SplitBackForthTrajectories=True,timerescale = 1
         return None
 
 
-def MLSQ_fit(x,y,returnoffset = True):
-    assert len(x) == len(y)
-    sx = np.sum(x)
+def LMSQ(x,y):
+    # least mean squares estimator
+    # A = ( 1  ... 1  )
+    #     ( x1 ... xn )
+    #
+    # y = ( y1 ... yn )
+    #
+    # p = (a b).T
+    #
+    # E[p]     = inv(A.T * A) * A.T * y
+    # Cov[p,p] = sigma2 * inv(A.T * A)
+    # sigma2   = E[ ( y - A*E[p] )^2 ]
+    n   = len(x)
+    sx  = np.sum(x)
+    sy  = np.sum(y)
     sxx = np.dot(x,x)
-    sy = np.sum(y)
     sxy = np.dot(x,y)
-    n = len(x)
-    a = (n*sxy - sx*sy)/(n*sxx-sx*sx)
-    b = (sy-a*sx)/n
-    if returnoffset:
-        return a,b
-    else:
-        return a
+    syy = np.dot(y,y)
+    
+    # estimate parameters
+    denom  = (n*sxx-sx*sx)
+    b      = (n*sxy - sx*sy)/denom
+    a      = (sy-b*sx)/n
+    estim  = np.array([a,b],dtype=np.float)
+
+    # estimate covariance matrix of estimated parameters
+    sigma2 = syy + n*a*a + b*b*sxx + 2*a*b*sx - 2*a*sy - 2*b*sxy # variance of deviations from linear line
+    cov    = sigma2 / denom * np.array([[sxx,-sx],[-sx,n]],dtype=np.float)
+
+    return estim,cov
+
 
 def MeanUpperFrac(x,upperfrac = .95,returnnumber = False):
     if len(x) > 0:
