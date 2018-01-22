@@ -39,7 +39,7 @@ class DropletDataNew(object):
         if self.__outbasename is None:
             self.__outbasename = ""
         
-
+        self.__maxtime = kwargs.get("maxtime",None)
         self.__timecolumnname = 'time'
 
         # further options when loading the data
@@ -54,7 +54,7 @@ class DropletDataNew(object):
         self.__idropmap = self.InvertDropmap(self.__dropmap)
         
         self.__columns = None
-
+        
         self.__data     = dict()
         for i in range(len(self.__dropmap)):
             fn = os.path.join(self.__dropdir,'{:04d}.csv'.format(i))
@@ -101,45 +101,80 @@ class DropletDataNew(object):
     def ExcludeLabel(self,label):
         self.__excludelabels.append(label)
 
+    def SetMaxTime(self,maxtime):
+        self.__maxtime = maxtime
 
+    def InstantGrowthRates(self,dropID,signalcolumn,fitpoints = 5,logsignal = True):
+        growthrates = list()
+        if self.__timecolumnname in self.__data[dropID] and signalcolumn in self.__data[dropID]:
+            if self.__splitBackForthTrajectories:
+                t0 = self.__data[dropID][self.__timecolumnname][0::2]
+                t1 = self.__data[dropID][self.__timecolumnname][1::2]
+                s0 = self.__data[dropID][signalcolumn][0::2]
+                s1 = self.__data[dropID][signalcolumn][1::2]
+                
+                if not self.__maxtime is None:
+                    s0 = s0[t0 < self.__maxtime]
+                    s1 = s1[t1 < self.__maxtime]
+                    t0 = t0[t0 < self.__maxtime]
+                    t1 = t1[t1 < self.__maxtime]
+                
+                if logsignal:
+                    t0 = t0[s0>0]
+                    t1 = t1[s1>0]
+                    s0 = np.log(s0[s0>0])
+                    s1 = np.log(s1[s1>0])
+                
+                if len(t0) > fitpoints:
+                    gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
+                else:
+                    gr0 = None
+                
+                if len(t1) > fitpoints:
+                    gr1 = np.array([LMSQ(t1[i:i+fitpoints],s1[i:i+fitpoints])[0][1] for i in range(len(t1)-fitpoints)],dtype= np.float)
+                else:
+                    gr1 = None
+                    
+                ret = (gr0,gr1)
+            else:
+                t0 = self.__data[i][self.__timecolumnname]
+                s0 = self.__data[i][signalcolumn]
+                
+                if not self.__maxtime is None:
+                    s0 = s0[t0 < self.__maxtime]
+                    t0 = t0[t0 < self.__maxtime]
+                
+                if logsignal:
+                    t0 = t0[s0>0]
+                    s0 = np.log(s0[s0>0])
+                
+                if len(t0) > fitpoints:
+                    gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
+                else:
+                    gr0 = None
+                ret = gr0
+        return ret
+                
 
     def GrowthRatesList(self,label,signalcolumn,fitpoints = 5,maxfrac = .95,logsignal = True):
         growthrates = list()
         if label in self.labels:
-            fp = open('growthrates-{}'.format(label),'w')
-            for trajectory in self[label]:
-                if self.__timecolumnname in trajectory.keys() and signalcolumn in trajectory.keys():
-                    if self.__splitBackForthTrajectories:
-                        t0 = trajectory[self.__timecolumnname][0::2]
-                        t1 = trajectory[self.__timecolumnname][1::2]
-                        s0 = trajectory[signalcolumn][0::2]
-                        s1 = trajectory[signalcolumn][1::2]
-                        if logsignal:
-                            t0 = t0[s0>0]
-                            t1 = t1[s1>0]
-                            s0 = np.log(s0[s0>0])
-                            s1 = np.log(s1[s1>0])
-                        gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
-                        gr1 = np.array([LMSQ(t1[i:i+fitpoints],s1[i:i+fitpoints])[0][1] for i in range(len(t1)-fitpoints)],dtype= np.float)
-
-                        for a,b in np.transpose([t0[:-fitpoints],gr0 ]):
-                            print >>fp,a,b
-                        print >> fp
-                        #exit(1)
-
-                        growthrates.append(MeanUpperFrac(gr0,maxfrac))
-                        growthrates.append(MeanUpperFrac(gr1,maxfrac))
-                    else:
-                        t0 = trajectory[self.__timecolumnname]
-                        s0 = trajectory[signalcolumn]
-                        if logsignal:
-                            t0 = t0[s0>0]
-                            s0 = np.log(s0[s0>0])
-                        gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
-                        growthrates.append(MeanUpperFrac(gr0,maxfrac))
+            #fp = open('growthrates-{}'.format(label),'w')
+            for dropID in self.__idropmap[label]:
+                if self.__splitBackForthTrajectories:
+                    gr0,gr1 = self.InstantGrowthRates(dropID,signalcolumn,fitpoints,logsignal)
+                    mgr0 = MeanUpperFrac(gr0)
+                    if not mgr0 is None:
+                        growthrates.append(mgr0)
+                    mgr1 = MeanUpperFrac(gr1)
+                    if not mgr1 is None:
+                        growthrates.append(mgr1)
                 else:
-                    raise KeyError
-            fp.close()
+                    gr0 = self.InstantGrowthRates(dropID,signalcolumn,fitpoints,logsignal)
+                    mgr0 = MeanUpperFrac(gr0)
+                    if not mgr0 is None:
+                        growthrates.append(mgr0)
+        
         growthrates = np.array(growthrates,dtype=np.float)
         growthrates = growthrates[~np.isnan(growthrates)]
         return growthrates
@@ -198,17 +233,20 @@ def LMSQ(x,y):
 
 
 def MeanUpperFrac(x,upperfrac = .95,returnnumber = False):
-    x = x[~np.isnan(x)]
-    if len(x) > 0:
-        uf_val = np.max(x) * upperfrac
-        m = np.mean(x[x >= uf_val])
-        n = len(x[x >= uf_val])
-        if returnnumber:
-            return m,n
+    if not x is None:
+        # delete all NaN values
+        xx = np.array([a for a in x if not np.isnan(a)])
+        if len(xx) > 0:
+            uf_val = np.max(xx) * upperfrac
+            m = np.mean(xx[xx >= uf_val])
+            n = len(xx[xx >= uf_val])
+            if returnnumber:
+                return m,n
+            else:
+                return m
         else:
-            return m
-    else:
-        return None
+            return None
+    return None
 
 # helper script to add all cmdline parameters
 def AddCommandLineParameters(parser):
