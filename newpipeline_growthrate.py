@@ -8,17 +8,16 @@ import os
 
 import millidrop_dataclass_new as mdc
 
-signaldata = {'WT':'fluo_2_median', 'PVDS': 'fluo_3_median' }
+signaldata = {'WT':'fluo_2_mean', 'PVDS': 'fluo_3_median' }
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i","--rootdir")
-parser.add_argument("-E","--discardlabels",nargs="*",default = [])
+parser.add_argument("-E","--excludelabels",nargs="*",default = ['Empty'])
 args = parser.parse_args()
 
 dirlist = np.sort([d for d in os.listdir(args.rootdir) if os.path.isdir(d)])
-discardlabels = [l.upper() for l in args.discardlabels]
-
+excludelabels = [l.upper() for l in args.excludelabels]
 
 for expdir in dirlist:
     print expdir
@@ -27,32 +26,20 @@ for expdir in dirlist:
     dropdir      = os.path.join(expdir,'analysis/droplets/')
 
     kwargs = {  'templatefile':templatefile,
-                'infiles':dropdir}
+                'infiles':dropdir,
+                'excludelabels':excludelabels}
 
     data = mdc.DropletDataNew(**kwargs)
 
-    for a in signaldata.keys()
-
-    for label in [l for l in data.labels if not l.upper() in discardlabels]:
-        for trajectory in data[label]:
-            columns = [str(a) for a in trajectory.keys()]
-
-            
-
-            time = trajectory['time'] / 3.6e3
-            signal = np.log(trajectory['test'])
-    
-
-
-
-
-
-
-
-
-
-
-
+    curstrain = None
+    for a in signaldata.keys():
+        if a in expdir.upper():
+            curstrain = a
+    if not curstrain is None:
+        for label in data.labels:
+            if signaldata[curstrain] in data.columns:
+                gr = data.GrowthRatesList(label,signaldata[curstrain])
+                print '   {:20s} {:.6f} {:.6f} {:.6f} {:4d}'.format(label,np.mean(gr),np.std(gr),np.median(gr),len(gr))
 
 
 
