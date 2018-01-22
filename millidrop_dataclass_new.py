@@ -90,10 +90,10 @@ class DropletDataNew(object):
     def InvertDropmap(self,dropmap):
         idm = dict()
         for i,wl in enumerate(dropmap):
-            if not idm.has_key(wl[1]):
+            if not wl[1] in idm:
                 idm[wl[1]] = list()
             idm[wl[1]].append(i)
-        for keys in idm.iterkeys():
+        for keys in idm.keys():
             idm[keys] = np.array(idm[keys],dtype=int)
         return idm
     
