@@ -39,8 +39,9 @@ class DropletDataNew(object):
         if self.__outbasename is None:
             self.__outbasename = ""
         
-        self.__maxtime = kwargs.get("maxtime",None)
-        self.__timecolumnname = 'time'
+        self.__maxtime        = kwargs.get("maxtime",None)
+        self.__fitpoints      = kwargs.get("fitpoints",5)
+        self.__timecolumnname = kwargs.get("timecolumnname",'time')
 
         # further options when loading the data
         self.__splitBackForthTrajectories = kwargs.get("SplitBackForthTrajectories",True)
@@ -55,6 +56,7 @@ class DropletDataNew(object):
         
         self.__columns = None
         
+        
         self.__data     = dict()
         for i in range(len(self.__dropmap)):
             fn = os.path.join(self.__dropdir,'{:04d}.csv'.format(i))
@@ -67,6 +69,9 @@ class DropletDataNew(object):
                         self.__columns.drop(c)
             if self.__timecolumnname in self.__data[i]:
                 self.__data[i][self.__timecolumnname] /= self.__timerescale
+        
+        # future pickle implementations might use that
+        self.__store_kwargs = kwargs
 
 
     def LoadDropMap(self,filename):
@@ -104,7 +109,7 @@ class DropletDataNew(object):
     def SetMaxTime(self,maxtime):
         self.__maxtime = maxtime
 
-    def InstantGrowthRates(self,dropID,signalcolumn,fitpoints = 5,logsignal = True):
+    def InstantGrowthRates(self,dropID,signalcolumn,logsignal = True):
         growthrates = list()
         if self.__timecolumnname in self.__data[dropID] and signalcolumn in self.__data[dropID]:
             if self.__splitBackForthTrajectories:
@@ -125,13 +130,13 @@ class DropletDataNew(object):
                     s0 = np.log(s0[s0>0])
                     s1 = np.log(s1[s1>0])
                 
-                if len(t0) > fitpoints:
-                    gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
+                if len(t0) > self.__fitpoints:
+                    gr0  = np.array([[LMSQ(t0[i:i+self.__fitpoints],s0[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints])] for i in range(len(t0)-self.__fitpoints)],dtype= np.float)
                 else:
                     gr0 = None
                 
-                if len(t1) > fitpoints:
-                    gr1 = np.array([LMSQ(t1[i:i+fitpoints],s1[i:i+fitpoints])[0][1] for i in range(len(t1)-fitpoints)],dtype= np.float)
+                if len(t1) > self.__fitpoints:
+                    gr1 = np.array([[LMSQ(t1[i:i+self.__fitpoints],s1[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints])] for i in range(len(t1)-self.__fitpoints)],dtype= np.float)
                 else:
                     gr1 = None
                     
@@ -148,38 +153,48 @@ class DropletDataNew(object):
                     t0 = t0[s0>0]
                     s0 = np.log(s0[s0>0])
                 
-                if len(t0) > fitpoints:
-                    gr0 = np.array([LMSQ(t0[i:i+fitpoints],s0[i:i+fitpoints])[0][1] for i in range(len(t0)-fitpoints)],dtype= np.float)
+                if len(t0) > self.__fitpoints:
+                    gr0 = np.array([[LMSQ(t0[i:i+self.__fitpoints],s0[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints])] for i in range(len(t0)-self.__fitpoints)],dtype= np.float)
                 else:
                     gr0 = None
                 ret = gr0
         return ret
                 
 
-    def GrowthRatesList(self,label,signalcolumn,fitpoints = 5,maxfrac = .95,logsignal = True):
+    def GrowthRatesList(self,label,signalcolumn,maxfrac = .95,logsignal = True):
         growthrates = list()
         if label in self.labels:
             #fp = open('growthrates-{}'.format(label),'w')
             for dropID in self.__idropmap[label]:
                 if self.__splitBackForthTrajectories:
-                    gr0,gr1 = self.InstantGrowthRates(dropID,signalcolumn,fitpoints,logsignal)
-                    mgr0 = MeanUpperFrac(gr0)
-                    if not mgr0 is None:
-                        growthrates.append(mgr0)
-                    mgr1 = MeanUpperFrac(gr1)
-                    if not mgr1 is None:
-                        growthrates.append(mgr1)
+                    gr0,gr1 = self.InstantGrowthRates(dropID,signalcolumn,logsignal)
+                    if not gr0 is None:
+                        mgr0 = MeanUpperFrac(gr0[:,0])
+                        if not mgr0 is None:
+                            growthrates.append(mgr0)
+                    if not gr1 is None:
+                        mgr1 = MeanUpperFrac(gr1[:,0])
+                        if not mgr1 is None:
+                            growthrates.append(mgr1)
                 else:
-                    gr0 = self.InstantGrowthRates(dropID,signalcolumn,fitpoints,logsignal)
-                    mgr0 = MeanUpperFrac(gr0)
-                    if not mgr0 is None:
-                        growthrates.append(mgr0)
+                    gr0 = self.InstantGrowthRates(dropID,signalcolumn,logsignal)
+                    if not gr0 is None:
+                        mgr0 = MeanUpperFrac(gr0[:,0])
+                        if not mgr0 is None:
+                            growthrates.append(mgr0)
         
         growthrates = np.array(growthrates,dtype=np.float)
         growthrates = growthrates[~np.isnan(growthrates)]
         return growthrates
 
-                        
+    def DropID_From_Label(self,label):
+        if label in self.labels:
+            return self.__idropmap[label]
+        else:
+            return None
+
+    def data(self,dropID):
+        return self.__data[dropID]
 
     def __getattr__(self,key):
         if key == 'labels':

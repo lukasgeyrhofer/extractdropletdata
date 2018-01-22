@@ -8,6 +8,16 @@ import os
 
 import millidrop_dataclass_new as mdc
 
+
+def writetofile(fp,x):
+    try:
+        for a,b in x:
+            fp.write('{:.6f} {:.6f}\n'.format(b,a))
+        fp.write('\n')
+    except:
+        pass
+
+
 signaldata = {'WT':'fluo_2_median', 'PVDS': 'fluo_3_median', 'ECOLI': 'fluo_2_mean'}
 
 
@@ -41,10 +51,16 @@ for expdir in dirlist:
     if not curstrain is None:
         for label in data.labels:
             if signaldata[curstrain] in data.columns:
+                fp = open(os.path.join(expdir,'growthrates-{}.txt'.format(label)),'w')
+                for dropID in data.DropID_From_Label(label):
+                    gr0,gr1 = data.InstantGrowthRates(dropID,signaldata[curstrain])
+                    writetofile(fp,gr0)
+                    writetofile(fp,gr1)
+                fp.close()
                 gr = data.GrowthRatesList(label,signaldata[curstrain])
                 if not gr is None:
                     if len(gr) > 0:
-                        print '   {:20s} {:.6f} {:.6f} {:.6f} {:4d}'.format(label,np.mean(gr),np.std(gr),np.median(gr),len(gr))
+                        print '   {:20s} {:10s} {:.6f} {:.6f} {:.6f} {:4d}'.format(label,signaldata[curstrain],np.mean(gr),np.std(gr),np.median(gr),len(gr))
 
 
 
