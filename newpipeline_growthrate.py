@@ -27,7 +27,7 @@ parser.add_argument("-E","--excludelabels",nargs="*",default = ['Empty','KB','CA
 parser.add_argument("-m","--maxtime",type=float,default=None)
 args = parser.parse_args()
 
-dirlist = np.sort([d for d in os.listdir(args.rootdir) if os.path.isdir(d)])
+dirlist = np.sort([d for d in os.listdir(args.rootdir) if os.path.isdir(d) and d[0] != '.'])
 excludelabels = [l.upper() for l in args.excludelabels]
 
 for expdir in dirlist:
