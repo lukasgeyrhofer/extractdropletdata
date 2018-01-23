@@ -19,8 +19,6 @@ def getTrajectories(data,channel,SplitBackForthTrajectories=True,timerescale = 1
             return a[::2,:],a[1::2,:]
         else:
             return a
-
-
     else:
         return None
 
@@ -106,8 +104,10 @@ class DropletDataNew(object):
     def ExcludeLabel(self,label):
         self.__excludelabels.append(label)
 
+
     def SetMaxTime(self,maxtime):
         self.__maxtime = maxtime
+
 
     def InstantGrowthRates(self,dropID,signalcolumn,logsignal = True):
         growthrates = list()
@@ -131,12 +131,12 @@ class DropletDataNew(object):
                     s1 = np.log(s1[s1>0])
                 
                 if len(t0) > self.__fitpoints:
-                    gr0  = np.array([[LMSQ(t0[i:i+self.__fitpoints],s0[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints])] for i in range(len(t0)-self.__fitpoints)],dtype= np.float)
+                    gr0  = np.array([[LMSQ(t0[i:i+self.__fitpoints],s0[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints]),s0[i+int(self.__fitpoints/2.)]] for i in range(len(t0)-self.__fitpoints)],dtype= np.float)
                 else:
                     gr0 = None
                 
                 if len(t1) > self.__fitpoints:
-                    gr1 = np.array([[LMSQ(t1[i:i+self.__fitpoints],s1[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints])] for i in range(len(t1)-self.__fitpoints)],dtype= np.float)
+                    gr1 = np.array([[LMSQ(t1[i:i+self.__fitpoints],s1[i:i+self.__fitpoints])[0][1],np.mean(t0[i:i+self.__fitpoints]),s1[i+int(self.__fitpoints/2.)] for i in range(len(t1)-self.__fitpoints)],dtype= np.float)
                 else:
                     gr1 = None
                     
@@ -187,14 +187,17 @@ class DropletDataNew(object):
         growthrates = growthrates[~np.isnan(growthrates)]
         return growthrates
 
+
     def DropID_From_Label(self,label):
         if label in self.labels:
             return self.__idropmap[label]
         else:
             return None
 
+
     def data(self,dropID):
         return self.__data[dropID]
+
 
     def __getattr__(self,key):
         if key == 'labels':

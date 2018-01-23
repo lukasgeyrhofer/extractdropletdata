@@ -30,6 +30,9 @@ args = parser.parse_args()
 dirlist = np.sort([d for d in os.listdir(args.rootdir) if os.path.isdir(d) and d[0] != '.'])
 excludelabels = [l.upper() for l in args.excludelabels]
 
+alldata = list()
+labelList = list()
+
 for expdir in dirlist:
     print expdir
 
@@ -63,4 +66,16 @@ for expdir in dirlist:
                         print '   {:20s} {:10s} {:.6f} {:.6f} {:.6f} {:4d}'.format(label,signaldata[curstrain],np.mean(gr),np.std(gr),np.median(gr),len(gr))
 
 
+data=[]
+labelList=[]
+for path in folder: #[folder[0]]:
+    a=path.split('/')
+    pathGrate=path+'growthDerivee/'
+    tmp=pd.read_csv(pathGrate+'gRate_nbpt5')
 
+    for experiment in tmp.columns:
+        if experiment != 'Unnamed: 0':
+            x=np.array(tmp[experiment])
+            x=x[~np.isnan(x)]
+            data.append(x)
+            labelList.append(a[-3]+experiment)
